@@ -44,7 +44,6 @@ yarn-error.*
 
 # ─────────────────────────────
 # Environment files
-# (tracks .env.production, .env.staging, etc. but not the root .env)
 # ─────────────────────────────
 .env
 .env*.local
@@ -60,8 +59,19 @@ yarn-error.*
 app-example
 
 # ─────────────────────────────
-# Generated native folders (for React Native / Expo prebuild)
+# Generated native folders (React Native / Expo prebuild)
 # ─────────────────────────────
 /ios
 /android
+
+# ─────────────────────────────
+# IDE / Editor settings
+# ─────────────────────────────
+.vscode/
+.idea/
+.vs/
+*.suo
+*.user
+*.sln
+*.iml
 
