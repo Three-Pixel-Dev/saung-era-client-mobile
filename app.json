@@ -21,7 +21,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.threepixeldev.saungera"
+      "package": "com.threepixeldev.saungera",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",

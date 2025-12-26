@@ -30,9 +30,7 @@ export default function HomeScreen() {
         >
             <Text>Welcome, {user?.firstName ?? "User"}!</Text>
             <Button title="Sign Out!" onPress={() => logout()} />
-
             {loading && <Text>Loading...</Text>}
-
             {!loading &&
                 products.map((p) => <ProductCard key={p.id} product={p} />)}
         </ScrollView>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import { saveTokens, clearTokens } from "../services/tokenStorage";
 import { mockLogin} from "@/app/src/services/mockapi";
+import {authService} from "@/app/src/services/auth.service";
 
 type AuthContextType = {
     isSignedIn: boolean;
@@ -16,16 +17,22 @@ export const AuthProvider = ({ children }: any) => {
     const [user, setUser] = useState<any>(null);
 
     const login = async (email: string, pass: string) => {
-        const res = await mockLogin(email, pass);
+        const res = await authService.login({email, pass});
         await saveTokens(res.accessToken, res.refreshToken);
         setUser(res.user);
         setIsSignedIn(true);
     };
 
     const logout = async () => {
-        await clearTokens();
-        setUser(null);
-        setIsSignedIn(false);
+        try {
+            await authService.logout();
+        } catch (error) {
+            console.error("Logout API failed", error);
+        } finally {
+            await clearTokens();
+            setUser(null);
+            setIsSignedIn(false);
+        }
     };
 
     return (
