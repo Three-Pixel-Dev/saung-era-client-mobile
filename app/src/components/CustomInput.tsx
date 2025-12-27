@@ -1,10 +1,40 @@
+/*
+|--------------------------------------------------------------------------
+| CustomInput Component
+|--------------------------------------------------------------------------
+| A reusable text input component with optional icon and prefix text.
+|
+| Features:
+| - Supports leading icons (e.g. email, lock icons)
+| - Supports static prefix text (e.g. country code, currency)
+| - Consistent styling across the app
+| - Works with all standard TextInput props
+|
+| Behavior:
+| - Adjusts padding automatically when icon or prefix is present
+| - Uses theme colors and spacing for consistency
+| - Disables auto-capitalization by default
+|
+| Props:
+| - icon: Optional icon component rendered on the left
+| - placeholder: Input placeholder text
+| - value: Controlled input value
+| - onChangeText: Change handler
+| - keyboardType: Keyboard type (email, number, etc.)
+| - secureTextEntry: Enables password-style input
+| - prefixText: Optional static text shown before the input value
+|
+| Usage:
+| - Use for forms (login, signup, profile, etc.)
+|--------------------------------------------------------------------------
+*/
 import {StyleSheet, TextInput, Text, View} from "react-native";
 import {theme} from "@/app/src/theme";
 
 export const CustomInput: React.FC<any> = ({ icon: Icon, placeholder, value, onChangeText, keyboardType, secureTextEntry, prefixText }) => (
     <View style={styles.inputContainer}>
     {Icon && <Icon style={styles.inputIcon} size={20} color={theme.colors.gray500} />}
-{prefixText && <Text style={styles.inputPrefix}>{prefixText}</Text>}
+    {prefixText && <Text style={styles.inputPrefix}>{prefixText}</Text>}
     <TextInput
     style={[styles.input, Icon && styles.inputWithIcon, prefixText && styles.inputWithPrefix]}
     placeholder={placeholder}
