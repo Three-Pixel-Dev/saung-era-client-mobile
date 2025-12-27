@@ -17,7 +17,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/app/src/context/AuthContext";
 import { theme } from "@/app/src/theme";
 import { useRouter } from "expo-router";
-import { Mail, Phone, Lock, User, ArrowRight, Sparkles, X, AtSign, CheckCircle } from "lucide-react-native"; // Added CheckCircle
+import { Mail, Phone, Lock, User, Sparkles, X, AtSign, CheckCircle } from "lucide-react-native";
 import { AuthMode, AuthStep } from "@/app/src/domain/auth/auth.types";
 import { CustomButton } from "@/app/src/components/CustomButton";
 import { CustomInput } from "@/app/src/components/CustomInput";
@@ -27,7 +27,7 @@ import { authService } from "@/app/src/services/auth.service";
 export default function AuthScreen() {
     const { login } = useAuth();
     const [mode, setMode] = useState<AuthMode>("email");
-    const [step, setStep] = useState<AuthStep>("method");
+    const [step, setStep] = useState<AuthStep>("login");
 
     // Form State
     const [email, setEmail] = useState("");
@@ -38,26 +38,79 @@ export default function AuthScreen() {
 
     // UI State
     const [error, setError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null); // New State
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
+    const [tabContainerWidth, setTabContainerWidth] = useState(0);
+
     const router = useRouter();
+
+    // --- ANIMATION SETUP ---
     const stepAnim = useRef(new Animated.Value(0)).current;
+    const tabAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        if (step !== 'login') {
-            setSuccessMessage(null);
-            setError(null);
-        }
-
+        setError(null);
+        setSuccessMessage(null);
         stepAnim.setValue(0);
         Animated.timing(stepAnim, {
             toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
+            duration: 350,
+            useNativeDriver: false,
             easing: Easing.out(Easing.back(1.5)),
         }).start();
     }, [step]);
+
+    useEffect(() => {
+        Animated.timing(tabAnim, {
+            toValue: mode === 'email' ? 0 : 1,
+            duration: 250,
+            useNativeDriver: false,
+            easing: Easing.inOut(Easing.ease),
+        }).start();
+    }, [mode]);
+
+    // --- INTERPOLATIONS ---
+
+    // 1. Text Colors (Smooth transition)
+    const textColorEmail = tabAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [theme.colors.white, theme.colors.gray500]
+    });
+
+    const textColorPhone = tabAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [theme.colors.gray500, theme.colors.white]
+    });
+
+    // 2. Slider Movement
+    const sliderWidth = tabContainerWidth > 0 ? (tabContainerWidth - 4) / 2 : 0;
+
+    const sliderAnimatedStyle = {
+        transform: [
+            {
+                translateX: tabAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, sliderWidth],
+                }),
+            },
+        ],
+    };
+
+    // 3. Page Transition
+    const animatedStyle = {
+        opacity: stepAnim,
+        transform: [
+            {
+                scale: stepAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.92, 1],
+                }),
+            },
+        ],
+    };
+
+    // -----------------------
 
     const handleLogin = async () => {
         setLoading(true);
@@ -70,28 +123,17 @@ export default function AuthScreen() {
                 if (mode === 'email') {
                     await login(email, pass);
                 } else {
-                    // Implement phone login if backend supports it
+                    // Phone login logic
                 }
                 router.replace("/(protected)/(shop)");
-
             } else if (step === 'signup') {
                 if (!name || !username || !email || !phone || !pass) {
                     throw new Error("Please fill in all required fields.");
                 }
-
-                await authService.register({
-                    name,
-                    username,
-                    email,
-                    phone,
-                    pass,
-                    mode
-                });
-
+                await authService.register({ name, username, email, phone, pass, mode });
                 setLoading(false);
                 setStep("login");
                 setSuccessMessage("Account registration successful! Please log in.");
-
             }
         } catch (err: any) {
             console.error("Auth failed", err);
@@ -110,12 +152,8 @@ export default function AuthScreen() {
         }, 1500);
     };
 
-    const isLoginOrSignup: boolean = step === "login" || step === "signup";
-
-    const getHeaderTitle = () => {
-        if (step === "signup") return "Create Account";
-        if (step === "login") return "Welcome Back";
-        return "Sign In";
+    const toggleStep = () => {
+        setStep(prev => prev === "login" ? "signup" : "login");
     };
 
     return (
@@ -132,183 +170,144 @@ export default function AuthScreen() {
                         keyboardShouldPersistTaps="handled"
                     >
                         <View style={styles.container}>
-                            <View style={styles.logoContainer}>
+
+                            {/* --- HEADER --- */}
+                            <View style={styles.header}>
                                 <View style={styles.logoBadge}>
-                                    <Sparkles size={40} color={theme.colors.gray900} />
+                                    <Sparkles size={32} color={theme.colors.gray900} />
                                 </View>
-                                <Text style={styles.title}>{getHeaderTitle()}</Text>
+                                <Text style={styles.title}>
+                                    {step === "login" ? "Welcome Back" : "Create Account"}
+                                </Text>
                                 <Text style={styles.subtitle}>
-                                    {step === 'method'
-                                        ? "Your premium shopping destination"
-                                        : (step === 'login' ? `Sign in with your ${mode}` : 'Enter your details')
-                                    }
+                                    {step === "login"
+                                        ? "Enter your credentials to access your account"
+                                        : "Fill in the details below to join us"}
                                 </Text>
                             </View>
 
-                            {/* --- ERROR MESSAGE --- */}
-                            {error && (
-                                <View style={styles.errorBox}>
-                                    <Text style={styles.errorText}>{error}</Text>
-                                    <TouchableOpacity onPress={() => setError(null)} style={styles.errorClose}>
-                                        <X size={16} color={theme.colors.error} />
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
-                            {/* --- SUCCESS MESSAGE --- */}
-                            {successMessage && (
-                                <View style={styles.successBox}>
-                                    <View style={{flexDirection: 'row', alignItems:'center', gap: 8, flex: 1}}>
-                                        <CheckCircle size={20} color="#15803d" />
-                                        <Text style={styles.successText}>{successMessage}</Text>
-                                    </View>
-                                    <TouchableOpacity onPress={() => setSuccessMessage(null)} style={styles.errorClose}>
-                                        <X size={16} color="#15803d" />
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
-                            <Animated.View
-                                style={{
-                                    opacity: stepAnim,
-                                    transform: [{
-                                        scale: stepAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.95, 1],
-                                        }),
-                                    }],
-                                    width: '100%'
-                                }}
-                            >
-                                {step === "method" && (
-                                    <View style={styles.formContainer}>
-                                        <CustomButton variant="social" onPress={handleGoogleLogin} disabled={loading}>
-                                            <FontAwesome name={"google"} size={20} color={"black"} style={styles.googleIcon} />
-                                            <Text style={styles.buttonTextSocial}>Continue with Google</Text>
-                                        </CustomButton>
-
-                                        <View style={styles.divider}>
-                                            <View style={styles.dividerLine} />
-                                            <Text style={styles.dividerText}>OR</Text>
-                                            <View style={styles.dividerLine} />
-                                        </View>
-
-                                        <View style={styles.toggleContainer}>
-                                            <CustomButton
-                                                variant={mode === "email" ? "default" : "outline"}
-                                                style={[styles.toggleButton, mode !== "email" && styles.buttonOutline]}
-                                                onPress={() => setMode("email")}
-                                                disabled={loading}
-                                            >
-                                                <Mail size={16} color={mode === "email" ? theme.colors.white : theme.colors.primary} />
-                                                <Text style={[styles.toggleText, mode !== "email" && styles.toggleTextOutline]}>Email</Text>
-                                            </CustomButton>
-                                            <CustomButton
-                                                variant={mode === "phone" ? "default" : "outline"}
-                                                style={[styles.toggleButton, mode !== "phone" && styles.buttonOutline]}
-                                                onPress={() => setMode("phone")}
-                                                disabled={loading}
-                                            >
-                                                <Phone size={16} color={mode === "phone" ? theme.colors.white : theme.colors.primary} />
-                                                <Text style={[styles.toggleText, mode !== "phone" && styles.toggleTextOutline]}>Phone</Text>
-                                            </CustomButton>
-                                        </View>
-
-                                        <CustomButton
-                                            onPress={() => setStep("login")}
-                                            disabled={loading}
-                                            style={styles.continueButton}
-                                        >
-                                            <Text style={styles.buttonTextDefault}>Continue</Text>
-                                            <ArrowRight size={18} color={theme.colors.white} style={{ marginLeft: 8 }} />
-                                        </CustomButton>
-                                        <TouchableOpacity onPress={() => setStep("signup")} style={styles.linkButton}>
-                                            <Text style={styles.linkText}> Don&#39;t have an account? <Text style={styles.linkTextPrimary}>Sign up</Text></Text>
+                            {/* --- ALERTS --- */}
+                            <Animated.View style={[styles.alertContainer, animatedStyle]}>
+                                {error && (
+                                    <View style={styles.errorBox}>
+                                        <Text style={styles.errorText}>{error}</Text>
+                                        <TouchableOpacity onPress={() => setError(null)}>
+                                            <X size={16} color={theme.colors.error} />
                                         </TouchableOpacity>
                                     </View>
                                 )}
-
-                                {isLoginOrSignup && (
-                                    <View style={styles.formContainer}>
-                                        {step === "signup" && (
-                                            <>
-                                                <CustomInput
-                                                    icon={User}
-                                                    placeholder="Full name"
-                                                    value={name}
-                                                    onChangeText={setName}
-                                                />
-                                                <CustomInput
-                                                    icon={AtSign}
-                                                    placeholder="Username"
-                                                    value={username}
-                                                    onChangeText={(text:string) => setUsername(text.toLowerCase().replace(/\s/g, ''))}
-                                                    autoCapitalize="none"
-                                                />
-                                                <CustomInput
-                                                    icon={Mail}
-                                                    placeholder="Email address"
-                                                    value={email}
-                                                    onChangeText={setEmail}
-                                                    keyboardType="email-address"
-                                                />
-                                                <CustomInput
-                                                    prefixText="+95"
-                                                    placeholder="9 XXX XXX XXX"
-                                                    value={phone}
-                                                    onChangeText={(text: string) => setPhone(text.replace(/\D/g, ""))}
-                                                    keyboardType="phone-pad"
-                                                />
-                                            </>
-                                        )}
-
-                                        {step === "login" && (
-                                            mode === "email" ? (
-                                                <CustomInput
-                                                    icon={Mail}
-                                                    placeholder="Email address"
-                                                    value={email}
-                                                    onChangeText={setEmail}
-                                                    keyboardType="email-address"
-                                                />
-                                            ) : (
-                                                <CustomInput
-                                                    prefixText="+95"
-                                                    placeholder="9 XXX XXX XXX"
-                                                    value={phone}
-                                                    onChangeText={(text: string) => setPhone(text.replace(/\D/g, ""))}
-                                                    keyboardType="phone-pad"
-                                                />
-                                            )
-                                        )}
-
-                                        <CustomInput
-                                            icon={Lock}
-                                            placeholder="Password"
-                                            value={pass}
-                                            onChangeText={setPass}
-                                            secureTextEntry
-                                        />
-
-                                        <CustomButton onPress={handleLogin} disabled={loading} style={styles.continueButton}>
-                                            {loading ? (
-                                                <ActivityIndicator color={theme.colors.white} />
-                                            ) : (
-                                                step === "signup" ? "Create Account" : "Sign In"
-                                            )}
-                                        </CustomButton>
-
-                                        <TouchableOpacity onPress={() => { setStep("method"); setError(null); }} style={styles.linkButton}>
-                                            <Text style={styles.linkText}>
-                                                ← Back to login options
-                                            </Text>
+                                {successMessage && (
+                                    <View style={styles.successBox}>
+                                        <View style={{flexDirection: 'row', alignItems:'center', gap: 8, flex: 1}}>
+                                            <CheckCircle size={20} color="#15803d" />
+                                            <Text style={styles.successText}>{successMessage}</Text>
+                                        </View>
+                                        <TouchableOpacity onPress={() => setSuccessMessage(null)}>
+                                            <X size={16} color="#15803d" />
                                         </TouchableOpacity>
                                     </View>
                                 )}
                             </Animated.View>
 
-                            <View style={styles.footerDecoration}>
-                                <Text style={styles.linkText}>© 2025 Saung Era online shop. All rights reserved.</Text>
+                            {/* --- MAIN FORM --- */}
+                            <Animated.View style={[styles.formContainer, animatedStyle]}>
+
+                                {step === 'login' && (
+                                    <View
+                                        style={styles.tabContainer}
+                                        onLayout={(e) => setTabContainerWidth(e.nativeEvent.layout.width)}
+                                    >
+                                        {/* THE MOVING BACKGROUND SLIDER - FLAT */}
+                                        {sliderWidth > 0 && (
+                                            <Animated.View
+                                                style={[
+                                                    styles.activeSlider,
+                                                    { width: sliderWidth },
+                                                    sliderAnimatedStyle
+                                                ]}
+                                            />
+                                        )}
+
+                                        {/* THE CLICKABLE TABS */}
+                                        <TouchableOpacity
+                                            style={styles.tab}
+                                            onPress={() => setMode('email')}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Animated.Text style={[styles.tabText, { color: textColorEmail }]}>
+                                                Email
+                                            </Animated.Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={styles.tab}
+                                            onPress={() => setMode('phone')}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Animated.Text style={[styles.tabText, { color: textColorPhone }]}>
+                                                Phone
+                                            </Animated.Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+
+                                {step === "signup" && (
+                                    <>
+                                        <CustomInput icon={User} placeholder="Full name" value={name} onChangeText={setName} />
+                                        <CustomInput icon={AtSign} placeholder="Username" value={username} onChangeText={(t:string) => setUsername(t.toLowerCase().replace(/\s/g, ''))} autoCapitalize="none" />
+                                        <CustomInput icon={Mail} placeholder="Email address" value={email} onChangeText={setEmail} keyboardType="email-address" />
+                                        <CustomInput prefixText="+95" placeholder="9 XXX XXX XXX" value={phone} onChangeText={(t: string) => setPhone(t.replace(/\D/g, ""))} keyboardType="phone-pad" />
+                                    </>
+                                )}
+
+                                {step === "login" && (
+                                    mode === "email" ? (
+                                        <CustomInput icon={Mail} placeholder="Email address" value={email} onChangeText={setEmail} keyboardType="email-address" />
+                                    ) : (
+                                        <CustomInput prefixText="+95" placeholder="9 XXX XXX XXX" value={phone} onChangeText={(t: string) => setPhone(t.replace(/\D/g, ""))} keyboardType="phone-pad" />
+                                    )
+                                )}
+
+                                <CustomInput icon={Lock} placeholder="Password" value={pass} onChangeText={setPass} secureTextEntry />
+
+                                <CustomButton onPress={handleLogin} disabled={loading} style={styles.primaryButton}>
+                                    {loading ? (
+                                        <ActivityIndicator color={theme.colors.white} />
+                                    ) : (
+                                        step === "signup" ? "Create Account" : "Sign In"
+                                    )}
+                                </CustomButton>
+
+                                {step === "signup" && (
+                                    <TouchableOpacity
+                                        onPress={() => { setStep("login"); }}
+                                        style={styles.linkButtonBack}
+                                    >
+                                        <Text style={styles.linkText}>← Back to login options</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </Animated.View>
+
+                            <View style={styles.footerContainer}>
+                                <View style={styles.divider}>
+                                    <View style={styles.dividerLine} />
+                                    <Text style={styles.dividerText}>OR</Text>
+                                    <View style={styles.dividerLine} />
+                                </View>
+
+                                <CustomButton variant="social" onPress={handleGoogleLogin} disabled={loading}>
+                                    <FontAwesome name={"google"} size={20} color={"black"} style={styles.googleIcon} />
+                                    <Text style={styles.buttonTextSocial}>Continue with Google</Text>
+                                </CustomButton>
+
+                                <TouchableOpacity onPress={toggleStep} style={styles.linkButton}>
+                                    <Text style={styles.linkText}>
+                                        {step === 'login' ? "Don't have an account? " : "Already have an account? "}
+                                        <Text style={styles.linkTextPrimary}>
+                                            {step === 'login' ? "Sign up" : "Sign in"}
+                                        </Text>
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </ScrollView>
@@ -325,24 +324,24 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         flexGrow: 1,
-        justifyContent: "center",
         paddingVertical: 20,
+        justifyContent: 'center',
     },
     container: {
         flex: 1,
         paddingHorizontal: theme.spacing.xl,
-        justifyContent: "space-between",
-        alignItems: "center",
+        maxWidth: 500,
+        width: '100%',
+        alignSelf: 'center',
     },
-    logoContainer: {
+    header: {
         alignItems: "center",
-        paddingTop: 10,
-        marginBottom: 20,
+        marginBottom: 30,
     },
     logoBadge: {
-        width: 80,
-        height: 80,
-        borderRadius: 20,
+        width: 64,
+        height: 64,
+        borderRadius: 18,
         backgroundColor: theme.colors.primary,
         justifyContent: "center",
         alignItems: "center",
@@ -353,53 +352,101 @@ const styles = StyleSheet.create({
         }),
     },
     title: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: "bold",
         color: theme.colors.gray900,
-        fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif',
-        marginBottom: 4,
+        marginBottom: 8,
     },
     subtitle: {
         fontSize: 14,
-        color: theme.colors.gray700,
+        color: theme.colors.gray500,
         textAlign: "center",
-        marginBottom: theme.spacing.lg,
     },
+
+    // --- UPDATED TAB STYLES ---
+    tabContainer: {
+        flexDirection: 'row',
+        backgroundColor: theme.colors.gray200,
+        padding: 2,
+        borderRadius: 10,
+        marginBottom: 20,
+        position: 'relative',
+        height: 50,
+    },
+    activeSlider: {
+        position: 'absolute',
+        top: 2,
+        left: 2,
+        bottom: 2,
+        backgroundColor: theme.colors.primary,
+        borderRadius: 8,
+    },
+    tab: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        zIndex: 10,
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+
     formContainer: {
         width: "100%",
-        maxWidth: 400,
         marginBottom: 20,
+        alignItems: 'center',
     },
-    // --- Button Styles ---
-    buttonOutline: {
-        backgroundColor: theme.colors.white,
-        borderColor: theme.colors.primary,
+    primaryButton: {
+        marginTop: 10,
+        width: '100%',
+    },
+    alertContainer: {
+        width: '100%',
+        marginBottom: 10,
+    },
+    errorBox: {
+        backgroundColor: `${theme.colors.error}10`,
         borderWidth: 1,
+        borderColor: theme.colors.error,
+        borderRadius: 8,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
     },
-    buttonDisabled: {
-        opacity: 0.6,
-    },
-    buttonText: {
-        fontSize: 16,
-        fontWeight: "600",
-    },
-    buttonTextDefault: {
-        color: theme.colors.white,
-    },
-    buttonTextSocial: {
-        color: theme.colors.gray900,
-    },
-    googleIcon: {
+    errorText: {
+        color: theme.colors.error,
+        fontSize: 13,
+        flex: 1,
         marginRight: 10,
     },
-    continueButton: {
-        marginTop: theme.spacing.sm,
+    successBox: {
+        backgroundColor: "#dcfce7",
+        borderWidth: 1,
+        borderColor: "#15803d",
+        borderRadius: 8,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
     },
-    // --- Divider Styles ---
+    successText: {
+        color: "#15803d",
+        fontSize: 13,
+        flex: 1,
+        fontWeight: '600',
+    },
+    footerContainer: {
+        width: '100%',
+    },
     divider: {
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: theme.spacing.md,
+        marginBottom: 20,
     },
     dividerLine: {
         flex: 1,
@@ -407,41 +454,28 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.gray300,
     },
     dividerText: {
-        width: 30,
-        textAlign: "center",
+        paddingHorizontal: 10,
         fontSize: 12,
         color: theme.colors.gray500,
-        textTransform: 'uppercase',
-        fontWeight: 'bold',
-    },
-    // --- Toggle Styles ---
-    toggleContainer: {
-        flexDirection: "row",
-        gap: 10,
-        marginBottom: theme.spacing.md,
-    },
-    toggleButton: {
-        flex: 1,
-        height: 48,
-        marginBottom: 0,
-        gap: 8,
-    },
-    toggleText: {
-        fontSize: 15,
         fontWeight: '600',
-        color: theme.colors.white,
     },
-    toggleTextOutline: {
-        color: theme.colors.primary,
+    buttonTextSocial: {
+        color: theme.colors.gray900,
+        fontWeight: '500',
     },
-    // --- Link/Error Styles ---
+    googleIcon: {
+        marginRight: 10,
+    },
     linkButton: {
-        marginTop: theme.spacing.md,
-        padding: 5,
+        marginTop: 24,
+        padding: 10,
+        alignItems: 'center',
+    },
+    linkButtonBack:{
+        padding: 10,
         alignItems: 'center',
     },
     linkText: {
-        textAlign: "center",
         fontSize: 14,
         color: theme.colors.gray500,
     },
@@ -449,52 +483,4 @@ const styles = StyleSheet.create({
         color: theme.colors.primary,
         fontWeight: "600",
     },
-    errorBox: {
-        width: '100%',
-        maxWidth: 400,
-        backgroundColor: `${theme.colors.error}10`,
-        borderWidth: 1,
-        borderColor: theme.colors.error,
-        borderRadius: 8,
-        padding: theme.spacing.sm,
-        marginBottom: theme.spacing.md,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    // --- NEW SUCCESS STYLE ---
-    successBox: {
-        width: '100%',
-        maxWidth: 400,
-        backgroundColor: "#dcfce7", // light green
-        borderWidth: 1,
-        borderColor: "#15803d", // dark green border
-        borderRadius: 8,
-        padding: theme.spacing.sm,
-        marginBottom: theme.spacing.md,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    successText: {
-        color: "#15803d",
-        fontSize: 14,
-        flexShrink: 1,
-        fontWeight: '600',
-    },
-    errorText: {
-        color: theme.colors.error,
-        fontSize: 14,
-        flexShrink: 1,
-        paddingRight: theme.spacing.sm,
-    },
-    errorClose: {
-        padding: 5,
-    },
-    footerDecoration: {
-        paddingBottom: theme.spacing.sm,
-        marginTop: 20,
-        alignItems: "center",
-        justifyContent: "center",
-    }
 });
