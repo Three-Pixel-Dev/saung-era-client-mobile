@@ -71,5 +71,11 @@ export const authService = {
         };
         const response = await api.post("/api/client/auth/password/change", payload);
         return response.data;
+    },
+    loginWithGoogle: async (idToken: string) => {
+        const response = await api.post<AuthResponse>("/api/client/auth/google", {
+            idToken
+        });
+        return response.data;
     }
 };

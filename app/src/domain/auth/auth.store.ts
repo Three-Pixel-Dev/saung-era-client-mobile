@@ -12,6 +12,7 @@ interface AuthStore {
 
     requestSignupOtp: (data: RegisterPayload) => Promise<void>;
     completeRegistration: (otp: string) => Promise<void>;
+    continueWithGoogle: (idToken: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -79,6 +80,25 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         } catch (err: any) {
             console.error("Registration failed", err);
             const msg = err.response?.data?.message || err.message || "Invalid Code or Registration Failed";
+            set({ error: msg });
+            throw err;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    continueWithGoogle: async (idToken: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await authService.loginWithGoogle(idToken);
+
+            set({ user: response.user });
+
+            // Note: You should likely save tokens here (e.g. AsyncStorage)
+            // await saveTokens(response.accessToken, response.refreshToken);
+
+        } catch (err: any) {
+            console.error("Google Login failed", err);
+            const msg = err.response?.data?.message || "Google Sign-In failed";
             set({ error: msg });
             throw err;
         } finally {

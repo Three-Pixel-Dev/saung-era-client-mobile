@@ -22,7 +22,8 @@ import {SlidingTabs} from "@/app/src/components/SlidingTabs";
 import {AlertBlock} from "@/app/src/components/AlertBlock";
 import {useAuthStore} from "@/app/src/domain/auth/auth.store";
 import {authService} from "@/app/src/domain/auth/auth.service";
-
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 // Extended Types for local use
 type AuthMode = 'email' | 'phone';
 type AuthStep = 'login' | 'signup' | 'otp' | 'forgot-password' | 'reset-password';
@@ -53,8 +54,16 @@ export default function AuthScreen() {
     const [localLoading, setLocalLoading] = useState(false);
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
+    // --- Google Auth ---
+    const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    });
+
     // --- ZUSTAND STORE ---
     const {
+        continueWithGoogle,
         requestSignupOtp,
         completeRegistration,
         isLoading: isAuthLoading,
@@ -68,6 +77,15 @@ export default function AuthScreen() {
 
     // --- ANIMATION ---
     const stepAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (response?.type === 'success') {
+            const { id_token } = response.params;
+            handleGoogleSignIn(id_token);
+        } else if (response?.type === 'error') {
+            setLocalError("Google sign-in cancelled or failed");
+        }
+    }, [response]);
 
     useEffect(() => {
         setLocalError(null);
@@ -198,7 +216,6 @@ export default function AuthScreen() {
     };
 
     const handleLoginOrSignup = async () => {
-        // ... (Existing Login/Signup Logic)
         setLocalError(null);
         setSuccessMessage(null);
         Keyboard.dismiss();
@@ -222,6 +239,15 @@ export default function AuthScreen() {
             setLocalError(err.message || "Authentication failed");
         } finally {
             setLocalLoading(false);
+        }
+    };
+
+    const handleGoogleSignIn = async (token: string) => {
+        try {
+            await continueWithGoogle(token);
+            router.replace("/(protected)/(shop)");
+        } catch (e) {
+            console.log("Google flow failed in component");
         }
     };
 
@@ -411,8 +437,7 @@ export default function AuthScreen() {
                             style={styles.dividerLine}/>
                         </View>
 
-                        <CustomButton variant="social" onPress={() => {
-                        }} disabled={isLoading}>
+                        <CustomButton variant="social" onPress={() => promptAsync()} disabled={isLoading || !request}>
                             <FontAwesome name={"google"} size={20} color={"black"} style={styles.googleIcon}/>
                             <Text style={styles.buttonTextSocial}>Continue with Google</Text>
                         </CustomButton>
