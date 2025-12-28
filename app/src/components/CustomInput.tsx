@@ -28,10 +28,19 @@
 | - Use for forms (login, signup, profile, etc.)
 |--------------------------------------------------------------------------
 */
-import {StyleSheet, TextInput, Text, View} from "react-native";
+import {StyleSheet, TextInput, Text, View, TouchableOpacity} from "react-native";
 import {theme} from "@/app/src/theme";
 
-export const CustomInput: React.FC<any> = ({ icon: Icon, placeholder, value, onChangeText, keyboardType, secureTextEntry, prefixText }) => (
+export const CustomInput: React.FC<any> = ({ icon: Icon,
+                                               rightIcon: RightIcon,
+                                               onRightIconPress,
+                                               placeholder,
+                                               value,
+                                               onChangeText,
+                                               keyboardType,
+                                               secureTextEntry,
+                                               prefixText,
+                                               ...props }) => (
     <View style={styles.inputContainer}>
     {Icon && <Icon style={styles.inputIcon} size={20} color={theme.colors.gray500} />}
     {prefixText && <Text style={styles.inputPrefix}>{prefixText}</Text>}
@@ -45,6 +54,11 @@ export const CustomInput: React.FC<any> = ({ icon: Icon, placeholder, value, onC
     autoCapitalize="none"
     secureTextEntry={secureTextEntry}
     />
+    {RightIcon && (
+        <TouchableOpacity onPress={onRightIconPress} style={styles.rightIconBtn}>
+            <RightIcon size={20} color={theme.colors.gray500} />
+        </TouchableOpacity>
+    )}
     </View>
 );
 
@@ -82,4 +96,10 @@ const styles = StyleSheet.create({
     inputWithPrefix: {
         paddingLeft: 5,
     },
+    rightIconBtn: {
+        paddingHorizontal: 15,
+        height: "100%",
+        justifyContent: "center",
+    }
+
 });

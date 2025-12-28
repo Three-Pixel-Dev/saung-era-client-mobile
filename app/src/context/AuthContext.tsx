@@ -1,12 +1,12 @@
 import { createContext, useContext, useState } from "react";
 import { saveTokens, clearTokens } from "../services/tokenStorage";
 import { mockLogin} from "@/app/src/services/mockapi";
-import {authService} from "@/app/src/services/auth.service";
+import {authService} from "@/app/src/domain/auth/auth.service";
 
 type AuthContextType = {
     isSignedIn: boolean;
     user: any;
-    login: (email: string, pass: string) => Promise<void>;
+    login: (identifier: string, pass: string) => Promise<void>;
     logout: () => Promise<void>;
 };
 
@@ -16,8 +16,8 @@ export const AuthProvider = ({ children }: any) => {
     const [isSignedIn, setIsSignedIn] = useState(false);
     const [user, setUser] = useState<any>(null);
 
-    const login = async (email: string, pass: string) => {
-        const res = await authService.login({email, pass});
+    const login = async (identifier: string, pass: string) => {
+        const res = await authService.login({identifier, pass});
         await saveTokens(res.accessToken, res.refreshToken);
         setUser(res.user);
         setIsSignedIn(true);
