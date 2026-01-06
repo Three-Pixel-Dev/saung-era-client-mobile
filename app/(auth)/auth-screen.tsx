@@ -24,11 +24,13 @@ import {useAuthStore} from "@/app/src/domain/auth/auth.store";
 import {authService} from "@/app/src/domain/auth/auth.service";
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import {makeRedirectUri} from "expo-auth-session";
+
 // Extended Types for local use
 type AuthMode = 'email' | 'phone';
 type AuthStep = 'login' | 'signup' | 'otp' | 'forgot-password' | 'reset-password';
 type AuthFlow = 'auth' | 'recovery';
-
+WebBrowser.maybeCompleteAuthSession();
 export default function AuthScreen() {
     const {login} = useAuth();
     const router = useRouter();
@@ -59,6 +61,7 @@ export default function AuthScreen() {
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        redirectUri: 'com.googleusercontent.apps.892803015558-sse4kp9lrn6j17trrie6e3dn3b3dfvm7:/(auth)',
     });
 
     // --- ZUSTAND STORE ---
@@ -244,7 +247,8 @@ export default function AuthScreen() {
 
     const handleGoogleSignIn = async (token: string) => {
         try {
-            await continueWithGoogle(token);
+            console.log("start google login")
+            await continueWithGoogle({idToken:token});
             router.replace("/(protected)/(shop)");
         } catch (e) {
             console.log("Google flow failed in component");
