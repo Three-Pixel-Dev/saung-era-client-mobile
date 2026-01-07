@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { authService } from "@/app/src/domain/auth/auth.service";
-import {RegisterPayload} from "@/app/src/domain/auth/auth.types";
+import {RegisterPayload, TokenPayload} from "@/app/src/domain/auth/auth.types";
 interface AuthStore {
     user: any | null;
     isLoading: boolean;
@@ -12,7 +12,7 @@ interface AuthStore {
 
     requestSignupOtp: (data: RegisterPayload) => Promise<void>;
     completeRegistration: (otp: string) => Promise<void>;
-    continueWithGoogle: (idToken: string) => Promise<void>;
+    continueWithGoogle: (data: TokenPayload) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -86,11 +86,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             set({ isLoading: false });
         }
     },
-    continueWithGoogle: async (idToken: string) => {
+    continueWithGoogle: async (data:TokenPayload) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await authService.loginWithGoogle(idToken);
-
+            const response = await authService.loginWithGoogle(data);
             set({ user: response.user });
 
             // Note: You should likely save tokens here (e.g. AsyncStorage)

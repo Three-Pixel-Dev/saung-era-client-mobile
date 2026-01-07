@@ -29,6 +29,10 @@ export interface ResetPasswordPayload {
     verificationToken: string;
 }
 
+export interface  TokenPayload{
+    idToken: string;
+}
+
 export interface AuthResponse {
     accessToken: string;
     refreshToken: string;

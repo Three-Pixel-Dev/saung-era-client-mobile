@@ -5,7 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "saungera",
+    "scheme": [
+      "saungera",
+      "com.googleusercontent.apps.892803015558-sse4kp9lrn6j17trrie6e3dn3b3dfvm7"
+    ],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

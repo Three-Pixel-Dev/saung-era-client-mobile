@@ -24,13 +24,16 @@ import {useAuthStore} from "@/app/src/domain/auth/auth.store";
 import {authService} from "@/app/src/domain/auth/auth.service";
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import {makeRedirectUri} from "expo-auth-session";
+import {VerifyingOverlay} from "@/app/src/components/auth/VerifyingOverlay";
+
 // Extended Types for local use
 type AuthMode = 'email' | 'phone';
 type AuthStep = 'login' | 'signup' | 'otp' | 'forgot-password' | 'reset-password';
 type AuthFlow = 'auth' | 'recovery';
-
+WebBrowser.maybeCompleteAuthSession();
 export default function AuthScreen() {
-    const {login} = useAuth();
+    const {login,continueWithGoogle,isVerifying} = useAuth();
     const router = useRouter();
 
     // --- STATE ---
@@ -59,11 +62,11 @@ export default function AuthScreen() {
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        redirectUri: 'com.googleusercontent.apps.892803015558-sse4kp9lrn6j17trrie6e3dn3b3dfvm7:/(auth)',
     });
 
     // --- ZUSTAND STORE ---
     const {
-        continueWithGoogle,
         requestSignupOtp,
         completeRegistration,
         isLoading: isAuthLoading,
@@ -79,6 +82,7 @@ export default function AuthScreen() {
     const stepAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
+        console.log("rsponse use effect")
         if (response?.type === 'success') {
             const { id_token } = response.params;
             handleGoogleSignIn(id_token);
@@ -86,7 +90,10 @@ export default function AuthScreen() {
             setLocalError("Google sign-in cancelled or failed");
         }
     }, [response]);
-
+    useEffect(() => {
+        console.log("TESTING LOG");
+        console.log("response is ",response)
+    }, []);
     useEffect(() => {
         setLocalError(null);
         setAuthError(null);
@@ -231,6 +238,7 @@ export default function AuthScreen() {
                     throw new Error("Please fill in all required fields.");
                 }
                 setFlow('auth');
+                console.log("request otp")
                 await requestSignupOtp({name, username, email, phoneNumber, password, mode});
                 setSuccessMessage("Code sent! Please check your device.");
                 setStep('otp');
@@ -244,7 +252,8 @@ export default function AuthScreen() {
 
     const handleGoogleSignIn = async (token: string) => {
         try {
-            await continueWithGoogle(token);
+            console.log("start google login")
+            await continueWithGoogle({idToken:token});
             router.replace("/(protected)/(shop)");
         } catch (e) {
             console.log("Google flow failed in component");
@@ -286,6 +295,7 @@ export default function AuthScreen() {
 
     return (
         <ScreenWrapper contentContainerStyle={styles.screenScrollContainer}>
+            <VerifyingOverlay visible={isVerifying} />
             <View style={styles.contentContainer}>
                 {/* --- HEADER --- */}
                 <View style={styles.header}>
