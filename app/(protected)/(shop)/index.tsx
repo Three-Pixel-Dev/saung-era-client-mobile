@@ -52,10 +52,10 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.actionsContainer}>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <MessageCircle size={24} color={theme.colors.gray900} />
-                        <NotificationBadge />
-                    </TouchableOpacity>
+                    {/*<TouchableOpacity style={styles.iconButton}>*/}
+                    {/*    <MessageCircle size={24} color={theme.colors.gray900} />*/}
+                    {/*    <NotificationBadge />*/}
+                    {/*</TouchableOpacity>*/}
 
                     <TouchableOpacity style={styles.iconButton}>
                         <ShoppingCart size={24} color={theme.colors.gray900} />
