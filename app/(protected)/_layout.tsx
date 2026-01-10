@@ -1,67 +1,81 @@
-import { Slot, useRouter, usePathname } from 'expo-router';
+import { Slot, useRouter, Href, useSegments } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-// You might want to import icons here later, e.g., from Lucide-React or Ionicons
+import { Store, ClipboardList, ShoppingBag, User } from 'lucide-react-native';
+import { theme } from "@/app/src/theme";
 
 export default function ProtectedLayout() {
-    // Auth logic (Commented out for now as per your request)
-    // const { isSignedIn } = useAuth();
-    // if (!isSignedIn) return <Redirect href="/(auth)/auth-screen" />;
-
     const router = useRouter();
-    const pathname = usePathname();
+    const segments = useSegments() as string[];
+
+    const tabs = [
+        {
+            name: 'Shop',
+            route: '/(protected)/(shop)',
+            group: '(shop)',
+            icon: Store,
+        },
+        {
+            name: 'Orders',
+            route: '/(protected)/(order)',
+            group: '(order)',
+            icon: ClipboardList,
+        },
+        {
+            name: 'Cart',
+            route: '/(protected)/(cart)',
+            group: '(cart)',
+            icon: ShoppingBag,
+        },
+        {
+            name: 'Me',
+            route: '/(protected)/(me)',
+            group: '(me)',
+            icon: User,
+        },
+    ];
 
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Main Content Area */}
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.content}>
                 <Slot />
             </View>
 
-            {/* Shared Navigation Bar */}
             <View style={styles.navbar}>
+                {tabs.map((tab) => {
+                    const isActive = segments.includes(tab.group);
 
-                {/* Shop Tab */}
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => router.push('/(protected)/(shop)')}
-                >
-                    <Text style={pathname.includes('(shop)') ? styles.activeText : styles.text}>
-                        Shop
-                    </Text>
-                </TouchableOpacity>
+                    const IconComponent = tab.icon;
+                    const activeColor = theme.colors.primary;
+                    const inactiveColor = theme.colors.gray500;
 
-                {/* Order Tab */}
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => router.push('/(protected)/(order)')}
-                >
-                    <Text style={pathname.includes('(order)') ? styles.activeText : styles.text}>
-                        Order
-                    </Text>
-                </TouchableOpacity>
-
-                {/* Cart Tab */}
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => router.push('/(protected)/(cart)')}
-                >
-                    <Text style={pathname.includes('(order)') ? styles.activeText : styles.text}>
-                        Cart
-                    </Text>
-                </TouchableOpacity>
-
-                {/* Me Tab */}
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => router.push('/(protected)/(me)')}
-                >
-                    <Text style={pathname.includes('(order)') ? styles.activeText : styles.text}>
-                        Me
-                    </Text>
-                </TouchableOpacity>
-
+                    return (
+                        <TouchableOpacity
+                            key={tab.name}
+                            style={styles.navItem}
+                            onPress={() => router.push(tab.route as Href)}
+                            activeOpacity={0.7}
+                        >
+                            <IconComponent
+                                size={24}
+                                color={isActive ? activeColor : inactiveColor}
+                                strokeWidth={isActive ? 2.5 : 2}
+                            />
+                            <Text style={[
+                                styles.text,
+                                {
+                                    color: isActive ? activeColor : inactiveColor,
+                                    fontWeight: isActive ? '600' : '400'
+                                }
+                            ]}>
+                                {tab.name}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
+
+            <SafeAreaView edges={['bottom']} style={{ backgroundColor: '#fff' }} />
         </SafeAreaView>
     );
 }
@@ -69,33 +83,33 @@ export default function ProtectedLayout() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#f9f9f9',
     },
     content: {
-        flex: 1, // Takes up all available space above the navbar
+        flex: 1,
     },
     navbar: {
         flexDirection: 'row',
-        height: 60,
-        borderTopWidth: 1,
-        borderTopColor: '#eee',
+        height: 65,
         backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.gray200 || '#eee',
         justifyContent: 'space-around',
         alignItems: 'center',
-        paddingBottom: 10, // Extra padding for iPhone home indicator
+        paddingTop: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 5,
     },
     navItem: {
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 10,
+        minWidth: 50,
     },
     text: {
-        color: '#888',
         fontSize: 12,
-    },
-    activeText: {
-        color: 'blue', // Change to your brand color
-        fontSize: 12,
-        fontWeight: 'bold',
+        marginTop: 4,
     },
 });
